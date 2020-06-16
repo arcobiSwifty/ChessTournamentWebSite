@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  Login - SetFlex
+{% endblock %}
+
+{% block content %}
+<div class="uk-position-center">
+  <div class="uk-margin-left">
+  <h2>Login</h2>
+  {% if form.errors %}
+  <div class="uk-alert uk-alert-danger">
+    <h3>Password o username errati</h3>
+  </div>
+  {% endif %}
+  <form method="post" action="/accounts/login/" class="uk-form">
+    {% csrf_token %}
+    <div class="uk-margin">
+      <div class="uk-inline">
+        <span class="uk-form-icon" uk-icon="icon: user"></span>
+        <input type="text" name="username" autofocus="" required="" id="id_username" class="uk-input">
+      </div>
+    </div>
+    <div class="uk-margin">
+      <div class="uk-inline">
+        <span class="uk-form-icon uk-form-icon-flip" uk-icon="icon: lock"></span>
+        <input type="password" name="password" required="" id="id_password" class="uk-input">
+      </div>
+    </div>
+    <input type="submit" value="login" class="uk-button uk-button-secondary"/>
+    <input type="hidden" name="next" value="{{ next }}" />
+
+  </form>
+</div>
+</div>
+{% endblock %}

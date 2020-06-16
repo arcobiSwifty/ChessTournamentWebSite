@@ -1,0 +1,45 @@
+{% load static %}
+
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <title>{% block title %}Scacchi{% endblock %}</title>
+        <link rel="stylesheet" href="{% static 'css/uikit.min.css' %}" />
+        <script src="{% static 'js/uikit.min.js' %}"></script>
+        <script src="{% static 'js/uikit-icons.min.js' %}"></script>
+    </head>
+    <body>
+        <nav class="uk-navbar-container uk-navbar-transparent uk-margin-left" uk-navbar>
+            <div class="uk-navbar-left">
+                <ul class="uk-navbar-nav">
+                    <li><a href="/">Gioca</a></li>
+                    <li><a href="/">Tornei</a></li>
+                    <li><a href="/">Analizza</a></li>
+                </ul>
+            </div>
+            <div class="uk-navbar-right uk-margin-right">
+                <ul class="uk-navbar-nav">
+                    <li class="uk-active">
+                        <a>Profilo</a>
+                        <div class="uk-navbar-dropdown">
+                            <ul class="uk-nav uk-navbar-dropdown-nav">
+                                <li><a href="/">Profilo</a></li>
+                                <li><a href="#">Impostazioni</a></li>
+                                <li class="uk-nav-divider"></li>
+                                <li><a href="#">Sviluppatori</a></li>
+                                <li><a href="#">Proponi una miglioramento</a></li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+  <div class="uk-container">
+    {% block content %}
+
+    {% endblock %}
+  </div>
+  </body>
+
+</html>
