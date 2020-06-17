@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+ <div class="uk-margin-left">
+<h2>Registrati</h2>
+<form method="post">
+  {% csrf_token %}
+  {% for field in form %}
+  <div class="uk-margin">
+    <p>
+      {{ field.label }} <br>
+      {% if field.name == "password1" or field.name == "password2" %}
+             <input type="password" name="{{field.name}}" required="" id="id_{{field.name}}" class="uk-input uk-form-medium">
+      {% else %}
+       <input type="text" name="{{field.name}}" required="" id="id_{{field.name}}" class="uk-input uk-form-medium">
+       {% endif %}
+      {% if field.help_text %}
+        <small style="color: grey">{{ field.help_text }}</small>
+      {% endif %}
+      {% for error in field.errors %}
+        <p style="color: red">{{ error }}</p>
+        </div>
+      {% endfor %}
+    </p>
+  {% endfor %}
+  <button type="submit" class="uk-button uk-button-secondary">Registrati</button>
+</form>
+</div>
+{% endblock %}
