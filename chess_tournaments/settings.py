@@ -126,9 +126,9 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 LOGIN_EXEMPT_URLS = [
-    'accounts/login',
-    'accounts/logount',
-    'accounts/register'
+    '/accounts/login',
+    '/accounts/logout',
+    '/accounts/register',
 ]
 
 LOGIN_REDIRECT_URL = '/'
