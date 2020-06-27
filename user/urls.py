@@ -4,10 +4,12 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 
-from .views import SignupView
+from .views import SignupView, PlayerDetail, ProfileDetail
 
 urlpatterns = [
     path('accounts/login/', auth_views.LoginView.as_view()),
     path('accounts/logout', auth_views.LogoutView.as_view()),
     path('accounts/register', SignupView.as_view()),
+    path('profilo/<int:pk>', PlayerDetail.as_view()),
+    path('profilo', ProfileDetail.as_view()),
 ]

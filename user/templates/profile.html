@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{{object.username}}
+{% if not user == object %}
+<a class="" href="/sfida/{{object.id}}">Sfida</a>
+{% endif %}
+
+{% endblock %}

@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
     'game',
     'tournament',
     'user',
@@ -72,7 +73,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'chess_tournaments.wsgi.application'
-
+ASGI_APPLICATION = 'chess_tournaments.routing.application'
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
@@ -133,3 +134,14 @@ LOGIN_EXEMPT_URLS = [
 
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login'
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+            #"hosts": [("localhost", 6379)], #remember to change
+            #"hosts": [os.environ.get("REDIS_URL", "redis://localhost:6379")],
+        }
+    }
+}

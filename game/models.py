@@ -5,12 +5,15 @@ import string, random
 
 import uuid
 
+import chess
+
 class Move(models.Model):
 
     text = models.CharField(max_length=8)
     index = models.IntegerField()
     duration = models.DecimalField(max_digits=7, decimal_places=3)
     color = models.IntegerField() #0 -> white, #1 -> black
+    date = models.DateTimeField(auto_now_add=True)
 
 
 class Game(models.Model):
@@ -31,4 +34,26 @@ class Game(models.Model):
     is_white_moving = models.BooleanField(default=True)
 
     start = models.DateTimeField(blank=True, null=True)
+    started = models.BooleanField(default=False)
+    start_timer = models.IntegerField(default=0)
+
+    def get_game_object(self):
+        moves = self.moves.order_by("index", "color")
+        board = chess.Board()
+        for move in moves:
+            board.push_san(move.text)
+        return board
+
+    def add_move(self, text, index, duration, color):
+        move = Move.objects.create(text=text, index=index, duration=duration, color=color)
+        self.moves.add(move)
+        self.save()
+
+    def get_last_move(self):
+        return self.moves.order_by("index", "color").last()
+        
+
+
+
+    
     
