@@ -16,7 +16,7 @@ class GameConsumer(AsyncConsumer):
     #handles chess games
     async def websocket_connect(self, event):
         game_id = self.scope["url_route"]["kwargs"]["pk"]
-        group_name = "game_".format({game_id})
+        group_name = "game_%s" % game_id
         self.group_name = group_name
         await self.channel_layer.group_add(
             group_name,
@@ -35,13 +35,22 @@ class GameConsumer(AsyncConsumer):
         })
 
     async def websocket_receive(self, event):
-        last_move = json.loads(event["text"])[-1]
+        event_json = json.loads(event["text"])
+        last_move = event_json["last_move"]
+        move_count = event_json["move_count"]
         game_id = self.scope["url_route"]["kwargs"]["pk"]
         game = await self.get_game(game_id)
+        is_valid = await self.is_valid_move(game, move_count)
+        if not is_valid:
+            #invalid move, can't make chess object
+            return
         chess_obj = await  self.get_game_obj(game)
         chess_obj.push_san(last_move)
         user = self.scope["user"]
         color = await self.get_player_color(game, user)
+        if not self.is_valid_player(game, user, color):
+            #invalid player, doesn't have the required permissions to move
+            return
         index = await self.get_move_index(game)
         move_length = await self.get_move_time(game)
         await self.add_move(game, last_move, index, move_length, color)
@@ -88,21 +97,30 @@ class GameConsumer(AsyncConsumer):
         elif game.black_player == player:
             return 1
 
+    def is_valid_player(self, game, player, color):
+        if color == 0 and game.white_player == player:
+            return True 
+        if color == 1 and game.black_player == player:
+            return True 
+        return False
+
     @database_sync_to_async
     def get_move_index(self, game):
         return int(game.moves.count()/2) + 1
 
     @database_sync_to_async
     def add_move(self, game, text, index, duration, color):
-        move = Move.objects.create(text=text, index=index, duration=duration, color=color)
-        game.moves.add(move)
-        game.save()
+        game.add_move(text, index, duration, color)
 
     @database_sync_to_async
     def get_move_time(self, game):
         if game.moves.count() > 2:
-            return timezone.now() - game.get_last_move().date
+            return (timezone.now() - game.get_last_move().date).total_seconds()
         return 0
+
+    @database_sync_to_async
+    def is_valid_move(self, game, move_count):
+        return game.is_valid_move(move_count)
 
 
     @database_sync_to_async

@@ -1,8 +1,15 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<div id="opponent-info">
+  <h2 id="opponent-name"></h2><span id="opponent-time"></span>
+</div>
 
 <div id="scacchiera" style="width: 70%"></div>
+
+<div id="player-info">
+  <h2 id="player-name"></h2><span id="player-time"></span>
+</div>
 
 <script>
 //si occupa dell'interfaccia grafica
@@ -14,7 +21,7 @@
 // Released under the MIT license
 // https://github.com/oakmac/chessboardjs/blob/master/LICENSE.md
 
-// start anonymous scope
+// start anonymous scope. 1800 lines.
 ;(function () {
   'use strict'
 
@@ -1841,6 +1848,8 @@ var orientation = "white"
 
 var user = "{{user}}"
 
+var last_move_played = undefined;
+
 function removeGreySquares () {
   $('#myBoard .square-55d63').css('background', '')
 }
@@ -1874,6 +1883,8 @@ function onDragStart (source, piece) {
 
 }
 
+
+
 function onDrop (source, target) {
   removeGreySquares()
 
@@ -1887,8 +1898,11 @@ function onDrop (source, target) {
   // illegal move
   if (move === null) return 'snapback'
 
-  game_history = game.history()
+  last_move_played = move
+  var history = game.history()
+  var game_history = {"last_move": history[history.length-1], "move_count": history.length}
   socket.send(JSON.stringify(game_history))
+
 }
 
 function onMouseoverSquare (square, piece) {
@@ -1913,12 +1927,14 @@ function onMouseoverSquare (square, piece) {
 function onMouseoutSquare (square, piece) {
   removeGreySquares()
 }
-
+/*
 function onSnapEnd () {
   board.position(game.fen())
   game_history = game.history()
   socket.send(JSON.stringify(game_history))
 }
+*/
+function onSnapEnd () {}
 
 //to do: change to wss
 var wsStart = 'ws://'
@@ -1935,40 +1951,53 @@ socket.onmessage = function(e) {
     if (user == response.white) {
       isWhite = true
       orientation = "white"
+      $("#player-name").html(response.white)
+      $("#opponent-name").html(response.black)
     } else if (user == response.black) {
       isWhite = false
       orientation = "black"
-
+      $("#player-name").html(response.black)
+      $("#opponent-name").html(response.white)
     }
     board.orientation(orientation)
   }
   updateGame(response.moves)
+  updateTime(response)
 }
 
 function updateGame(m) {
     var moves = m
     if (moves.length > 1) {
         var last_move = moves[moves.length-1]
-        moves.pop()
+        if (last_move == last_move_played) {
+          return
+        }
         game = new Chess()
         for (move in moves) {
             game.move(moves[move])
         }
-        var new_fen = game.fen()
-        game.move(last_move)
         var last_fen = game.fen()
-        board.position(new_fen.split(" ")[0], false)
         board.position(last_fen.split(" ")[0])
   } else {
       if (moves.length == 1) {
-          board.position(board.start, false)
+        if (moves[0] == last_move_played) {
+          return
+        }
           game.move(moves[0])
           var fen = game.fen()
           board.position(fen.split(" ")[0])
       }
   }
 }
-
+function updateTime(r) {
+  if (isWhite) {
+    $("#player-time").html(r.time_white)
+    $("#opponent-time").html(r.time_black)
+  } else {
+    $("#player-time").html(r.time_black)
+    $("#opponent-time").html(r.time_white)
+  }
+}
 socket.onopen = function(e) {
   console.log("open", e)
   if (e.initial == true) {
