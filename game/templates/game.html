@@ -1,15 +1,118 @@
 {% extends 'base.html' %}
 
 {% block content %}
+
+
+<style>
+  .inline {
+    display: inline;
+    margin-left: 15px;
+  }
+.parent_table {
+    height: 110px;
+    overflow-y: auto;
+    overflow-x: hidden; 
+  }
+  body {
+        font-family: sans-serif;
+      }
+
+  #promotion-dialog {
+    display: none;
+      }
+
+  .ui-dialog {
+        padding: 0 !important;
+        width: 184px !important;
+        border: 0 !important;
+      }
+
+  .ui-dialog-content {
+        padding: 0 !important;
+        width: 184px !important;
+        border: 0 !important;
+      }
+
+  .ui-corner-all {
+        border-radius: 0;
+      }
+
+  .ui-state-default, .ui-widget-content .ui-state-default, .ui-widget-header .ui-state-default {
+        border: 0 !important;
+      }
+
+  #promote-to .ui-selecting {
+        background: #FECA40;
+      }
+
+  #promote-to .ui-selected {
+        background: #F39814;
+        color: white;
+      }
+
+  #promote-to {
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+        width: 184px;
+        height: 46px;
+      }
+
+  #promote-to li {
+        margin: 0;
+        padding: 0;
+        width: 46px;
+        height: 46px;
+        cursor: pointer;
+        float: left !important;
+      }
+
+  .ui-dialog .ui-dialog-content {
+        padding: 0;
+      }
+
+  .no-close .ui-dialog-titlebar-close {
+        display: none;
+      }
+
+  .noTitleStuff .ui-dialog-titlebar {
+        display: none;
+      }
+
+  .promotion-piece {
+        width: 46px;
+        height: 46px;
+      }
+
+  .piece-name {
+        display: none;
+      }
+</style>
+
 <div id="opponent-info">
-  <h2 id="opponent-name"></h2><span id="opponent-time"></span>
+  <h2 id="opponent-name" class="inline"></h2>
+  <h3 id="opponent-time" class="inline"></h2>
 </div>
-
+<div>
 <div id="scacchiera" style="width: 70%"></div>
-
-<div id="player-info">
-  <h2 id="player-name"></h2><span id="player-time"></span>
 </div>
+<div id="promotion-dialog">
+      <ol id="promote-to">
+        <li class="ui-state-default"><span class="piece-name">q</span><img class="promotion-piece-q promotion-piece" /></li>
+        <li class="ui-state-default"><span class="piece-name">r</span><img class="promotion-piece-r promotion-piece" /></li>
+        <li class="ui-state-default"><span class="piece-name">n</span><img class="promotion-piece-n promotion-piece" /></li>
+        <li class="ui-state-default"><span class="piece-name">b</span><img class="promotion-piece-b promotion-piece" /></li>
+      </ol>
+    </div>
+<div id="player-info">
+  <h2 id="player-name" class="inline"></h2>
+  <h3 id="player-time" class="inline"></h3>
+</div>
+
+<table class="uk-table uk-table-striped inline parent_table">
+    <tbody id="move_list">
+    </tbody>
+</table>
 
 <script>
 //si occupa dell'interfaccia grafica
@@ -1836,6 +1939,12 @@
 
 <script>
 
+var promote_to, promoting, promotion_dialog, move_cfg;
+
+promotion_dialog = $('#promotion-dialog');
+promoting = false;
+
+
 var board = null
 var game = new Chess()
 var whiteSquareGrey = '#a9a9a9'
@@ -1849,6 +1958,8 @@ var orientation = "white"
 var user = "{{user}}"
 
 var last_move_played = undefined;
+
+var timer = undefined
 
 function removeGreySquares () {
   $('#myBoard .square-55d63').css('background', '')
@@ -1883,20 +1994,57 @@ function onDragStart (source, piece) {
 
 }
 
-
-
-function onDrop (source, target) {
+var onDrop = function(source, target) {
   removeGreySquares()
 
   // see if the move is legal
-  var move = game.move({
+  move_cfg = {
     from: source,
     to: target,
-    promotion: 'q' // NOTE: remember yo change
-  })
+    promotion: 'q' // NOTE: remember to change
+  }
+  var move = game.move(move_cfg)
 
   // illegal move
-  if (move === null) return 'snapback'
+  if (move === null) {
+    return 'snapback'
+  } else {
+    game.undo()
+  }
+  var source_rank = source.substring(2,1);
+  var target_rank = target.substring(2,1);
+  var piece = game.get(source).type;
+  
+  if (piece === 'p' && ((source_rank === '7' && target_rank === '8') || (source_rank === '2' && target_rank === '1'))) {
+    promoting = true;
+
+    $('.promotion-piece-q').attr('src', getImgSrc('q'));
+    $('.promotion-piece-r').attr('src', getImgSrc('r'));
+    $('.promotion-piece-n').attr('src', getImgSrc('n'));
+    $('.promotion-piece-b').attr('src', getImgSrc('b'));
+
+    promotion_dialog.dialog({
+      modal: true,
+      height: 46,
+      width: 184,
+      resizable: true,
+      draggable: false,
+      close: onDialogClose,
+      closeOnEscape: false,
+      dialogClass: 'noTitleStuff'
+      }).dialog('widget').position({
+        of: $('#scacchiera'),
+        my: 'middle middle',
+        at: 'middle middle',
+      });
+            return 
+             }
+    move = game.move({
+      from: source,
+      to: target,
+      promotion: 'q' // NOTE: remember to change
+    })
+  
 
   last_move_played = move
   var history = game.history()
@@ -1904,6 +2052,22 @@ function onDrop (source, target) {
   socket.send(JSON.stringify(game_history))
 
 }
+
+var onDialogClose = function() {
+          // console.log(promote_to);
+          move_cfg.promotion = promote_to;
+          makeMove(game, move_cfg);
+          var history = game.history()
+          var game_history = {"last_move": history[history.length-1], "move_count": history.length}
+          socket.send(JSON.stringify(game_history))
+        }
+
+function makeMove(game, cfg) {
+          // see if the move is legal
+          var move = game.move(cfg);
+          // illegal move
+          if (move === null) return 'snapback';
+        }
 
 function onMouseoverSquare (square, piece) {
   // get list of possible moves for this square
@@ -1934,7 +2098,18 @@ function onSnapEnd () {
   socket.send(JSON.stringify(game_history))
 }
 */
-function onSnapEnd () {}
+function onSnapEnd () {
+  if (promoting) {
+    return
+  }
+  //add
+  board.position(game.fen(), false);
+  promoting = false;
+}
+
+function getImgSrc(piece) {
+  return "/static/chessboard/img/chesspieces/wikipedia/piece_name.png".replace('piece_name', game.turn() + piece.toLocaleUpperCase());
+}
 
 //to do: change to wss
 var wsStart = 'ws://'
@@ -1945,7 +2120,6 @@ var endpoint = wsStart + window.location.host + window.location.pathname
 var socket = new WebSocket(endpoint)
 
 socket.onmessage = function(e) {
-  console.log(JSON.parse(e.data))
   var response = JSON.parse(e.data)
   if (response.initial == true) {
     if (user == response.white) {
@@ -1961,9 +2135,19 @@ socket.onmessage = function(e) {
     }
     board.orientation(orientation)
   }
+  if (response.moves.length == 2) {
+    timer = setInterval(function() {
+      if (((game.turn()  == "w") && isWhite) || ((game.turn() == "b") && !(isWhite))){
+         timerTick($("#player-time"))
+      } else {
+          timerTick($("#opponent-time"))
+      }
+    }, 1000);
+  } 
   updateGame(response.moves)
   updateTime(response)
 }
+
 
 function updateGame(m) {
     var moves = m
@@ -1988,14 +2172,44 @@ function updateGame(m) {
           board.position(fen.split(" ")[0])
       }
   }
+  if(m.length >= 1) {
+  var move_index = parseInt(Math.trunc((m.length-1) / 2)) + 1
+  if ((m.length % 2) == 0) {
+    var previous_moves = $("#move_list").html().split("</tr>")
+    previous_moves = previous_moves.slice(0, previous_moves.length-2)
+    var moves_text = ""
+    for (m_html in previous_moves) {
+      moves_text += previous_moves[m_html] + "</tr>"
+    }
+    var text = moves_text + "<tr><td>" + move_index  + ". </td><td>" + m[m.length-2] + "</td><td>" + m[m.length-1] + "</td></tr>"
+     $("#move_list").html(text)
+  }
+  if ((m.length % 2) == 1) {
+    var text = $("#move_list").html() + "<tr><td>" + move_index + ".</td><td>" + m[m.length-1] + "</td><td></td></tr>"
+     $("#move_list").html(text)
+  }
+  }
+
 }
 function updateTime(r) {
-  if (isWhite) {
-    $("#player-time").html(r.time_white)
-    $("#opponent-time").html(r.time_black)
+  var time_white = "" + Math.trunc(r.time_white / 60)
+  var time_black = "" + Math.trunc(r.time_black / 60)
+  if ((r.time_white % 60) <  10)  {
+    time_white = time_white + ":0" + Math.trunc(r.time_white%60)
   } else {
-    $("#player-time").html(r.time_black)
-    $("#opponent-time").html(r.time_white)
+    time_white = time_white + ":" + Math.trunc(r.time_white%60)
+  }
+  if ((r.time_black % 60) <  10)  {
+    time_black = time_black + ":0" + Math.trunc(r.time_black%60)
+  } else {
+    time_black = time_black + ":" + Math.trunc(r.time_black%60)
+  }
+  if (isWhite) {
+    $("#player-time").html(time_white)
+    $("#opponent-time").html(time_black)
+  } else {
+    $("#player-time").html(time_black)
+    $("#opponent-time").html(time_white)
   }
 }
 socket.onopen = function(e) {
@@ -2011,6 +2225,28 @@ socket.onopen = function(e) {
     }
     board.orientation(orientation)
   }
+
+}
+
+function timerTick(timer) {
+  var current_value = timer.html().split(":")
+  var seconds = parseInt(current_value[1])
+  var minutes = parseInt(current_value[0])
+  if (seconds > 0 ) {
+    seconds = seconds - 1
+  } else {
+    seconds = 59
+    minutes = minutes - 1
+  }
+  var new_seconds = ""
+  var new_minutes = "" + minutes
+  if (seconds < 10) {
+    new_seconds = "0" + seconds
+  } else {
+    new_seconds = "" + seconds
+  }
+  timer.html(new_minutes + ":" + new_seconds)
+
 
 }
 console.log(user)
@@ -2040,6 +2276,23 @@ var config = {
 }
 board = Chessboard('scacchiera', config)
 
+ $("#promote-to").selectable({
+          stop: function() {
+            $( ".ui-selected", this ).each(function() {
+              var selectable = $('#promote-to li');
+              var index = selectable.index(this);
+              if (index > -1) {
+                var promote_to_html = selectable[index].innerHTML;
+                var span = $('<div>' + promote_to_html + '</div>').find('span');
+                promote_to = span[0].innerHTML;
+              }
+              promotion_dialog.dialog('close');
+              $('.ui-selectee').removeClass('ui-selected');
+              promoting = false;
+              board.position(game.fen(), false);
+            });
+          }
+        });
 
 </script>
 

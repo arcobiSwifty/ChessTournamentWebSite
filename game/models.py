@@ -38,8 +38,11 @@ class Game(models.Model):
     start = models.DateTimeField(blank=True, null=True)
     started = models.BooleanField(default=False)
     start_timer = models.IntegerField(default=0)
+    is_finished = models.BooleanField(default=False)
 
     has_time = models.BooleanField(default=True)
+
+    result = models.IntegerField(default=3) #0 -> white, #1 -> black, #2 -> drawn #3 -> not finished
 
     def get_game_object(self):
         moves = self.moves.order_by("index", "color")
@@ -50,11 +53,21 @@ class Game(models.Model):
 
     def add_move(self, text, index, duration, color):
         move = Move.objects.create(text=text, index=index, duration=duration, color=color)
+        if index > 1:
+            self.started = True
         self.moves.add(move)
-        if color == 0 and  self.has_time:
+        if color == 0 and self.has_time:
             self.time_remaining_white = self.time_remaining_white - Decimal.from_float(duration)
+            self.is_white_moving = False
+            if self.time_remaining_white <= 0:
+                self.is_finished = True
+                self.result = 0
         elif color == 1 and self.has_time:
             self.time_remaining_black = self.time_remaining_black - Decimal.from_float(duration)
+            self.is_white_moving = True
+            if self.time_remaining_black <= 0:
+                self.is_finished = True
+                self.result = 1
         self.save()
 
     def get_last_move(self):

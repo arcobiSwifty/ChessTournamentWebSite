@@ -40,6 +40,8 @@ class GameConsumer(AsyncConsumer):
         move_count = event_json["move_count"]
         game_id = self.scope["url_route"]["kwargs"]["pk"]
         game = await self.get_game(game_id)
+        if game.is_finished:
+            return 
         is_valid = await self.is_valid_move(game, move_count)
         if not is_valid:
             #invalid move, can't make chess object
@@ -54,6 +56,14 @@ class GameConsumer(AsyncConsumer):
         index = await self.get_move_index(game)
         move_length = await self.get_move_time(game)
         await self.add_move(game, last_move, index, move_length, color)
+        if chess_obj.is_game_over():
+            result = chess_obj.result 
+            if result == "1-0":
+                await self.update_game_status(game, 0)
+            if result == "0-1":
+                await self.update_game_status(game, 1)
+            if result == "1/2-1/2":
+                await self.update_game_status(game, 2)
         json_response = await self.get_game_update(game)
         await self.channel_layer.group_send(
             self.group_name,
@@ -122,6 +132,11 @@ class GameConsumer(AsyncConsumer):
     def is_valid_move(self, game, move_count):
         return game.is_valid_move(move_count)
 
+    @database_sync_to_async
+    def update_game_status(game, status):
+        game.result = status
+        game.is_finished = True
+        game.save()
 
     @database_sync_to_async
     def get_game_update(self, game, is_initial=False):
