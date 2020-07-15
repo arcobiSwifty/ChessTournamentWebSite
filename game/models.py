@@ -9,6 +9,8 @@ import chess
 
 from decimal import Decimal
 
+from django.utils import timezone
+
 class Move(models.Model):
 
     text = models.CharField(max_length=8)
@@ -72,6 +74,21 @@ class Game(models.Model):
 
     def get_last_move(self):
         return self.moves.order_by("index", "color").last()
+
+    def check_time(self):
+        last_move = self.get_last_move()
+        if last_move.color == 0:
+            time_remaining = self.time_remaining_white
+        elif last_move.color == 1:
+            time_remaining = self.time_remaining_black
+        if (Decimal.from_float(timezone.now() - last_move.date).total_seconds()) > time_remaining:
+            if self.is_finished is False:
+                self.is_finished = True
+                self.result = last_move.color 
+                #todo: if the player doesn't have mating material, draw
+            return True
+        return False
+
 
     def is_valid_move(self, move_count):
         if move_count == self.moves.count():

@@ -36,6 +36,21 @@ class GameConsumer(AsyncConsumer):
 
     async def websocket_receive(self, event):
         event_json = json.loads(event["text"])
+        if type(event_json) is dict and event_json["header-content"]:
+            if event_json["header-content"] == "request-result":
+                game_id = self.scope["url_route"]["kwargs"]["pk"]
+                game = await self.get_game(game_id)
+                await self.check_flagging(game)
+                json_response = await self.get_game_update(game)
+                await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    "type": "move_message",
+                    "text": json_response
+                })
+                return
+
+                
         last_move = event_json["last_move"]
         move_count = event_json["move_count"]
         game_id = self.scope["url_route"]["kwargs"]["pk"]
@@ -97,6 +112,10 @@ class GameConsumer(AsyncConsumer):
         return Game.objects.get(code=pk)
 
     @database_sync_to_async
+    def check_flagging(self, game):
+        return game.check_time()
+
+    @database_sync_to_async
     def get_game_obj(self, game):
         return game.get_game_object()
 
@@ -149,6 +168,7 @@ class GameConsumer(AsyncConsumer):
                     "increment": game.increment,
                     "is_started": game.started,
                     "start_time": game.start_timer,
+                    "result": game.result,
                     "moves": [],
                     "initial": is_initial
                     }
