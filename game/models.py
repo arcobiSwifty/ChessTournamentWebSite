@@ -97,6 +97,15 @@ class Game(models.Model):
         return True
         
 
+class Analysis(models.Model):
+
+    position = models.CharField(max_length=100)
+
+    code = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    
+
+
 
 
     

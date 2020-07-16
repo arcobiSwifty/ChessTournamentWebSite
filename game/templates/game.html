@@ -1953,6 +1953,8 @@ var blackSquareGrey = '#696969'
 var isGameStarted = true 
 var isWhite = undefined
 
+var is_spectator = true
+
 var orientation = "white"
 
 var user = "{{user}}"
@@ -1979,6 +1981,10 @@ function greySquare (square) {
 function onDragStart (source, piece) {
   // do not pick up pieces if the game is over
   if (game.game_over()) return false
+
+  if (is_spectator) {
+    return false
+  }
 
   // or if it's not that side's turn
   if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
@@ -2126,12 +2132,14 @@ socket.onmessage = function(e) {
   } 
   if (response.initial == true) {
     if (user == response.white) {
+      is_spectator = false
       isWhite = true
       orientation = "white"
       $("#player-name").html(response.white)
       $("#opponent-name").html(response.black)
     } else if (user == response.black) {
       isWhite = false
+      is_spectator = false;
       orientation = "black"
       $("#player-name").html(response.black)
       $("#opponent-name").html(response.white)

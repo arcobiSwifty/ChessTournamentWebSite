@@ -49,7 +49,6 @@ class GameConsumer(AsyncConsumer):
                     "text": json_response
                 })
                 return
-
                 
         last_move = event_json["last_move"]
         move_count = event_json["move_count"]
@@ -152,7 +151,7 @@ class GameConsumer(AsyncConsumer):
         return game.is_valid_move(move_count)
 
     @database_sync_to_async
-    def update_game_status(game, status):
+    def update_game_status(self, game, status):
         game.result = status
         game.is_finished = True
         game.save()
@@ -175,12 +174,24 @@ class GameConsumer(AsyncConsumer):
         for move in game.moves.order_by("index", "color"):
             response["moves"].append(move.text)
         return json.dumps(response)
+
+
+class AnalysisConsumer(AsyncConsumer):
+    async def websocket_connect(self, event):
+        await self.send({
+            "type": "weboscket.accept"
+        })
+    async def webscoket_receive(self, event):
+        event_json = json.loads(event["text"])
+        
+        pass
+    async def webscoket_disconnect(self, event):
+        pass
             
 
 
 
 class NotificationConsumer(AsyncConsumer):
-    #handles notification
     async def websocket_connect(self, event):
         await self.send({
             "type": "weboscket.accept"
